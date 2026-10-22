@@ -1,3 +1,7 @@
+# Miniz_archiver
+
+This repo contains a modified version of minz.
+
 ## Miniz (store-only fork)
 
 This is a destructive, store-only fork of [miniz](https://github.com/richgel999/miniz),
