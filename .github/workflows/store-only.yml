@@ -1,0 +1,113 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  linux:
+    name: Linux (${{ matrix.cc }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - cc: gcc
+            cxx: g++
+          - cc: clang
+            cxx: clang++
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: >
+          cmake -S . -B build
+          -DBUILD_TESTS=ON
+          -DBUILD_EXAMPLES=OFF
+          -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_C_COMPILER=${{ matrix.cc }}
+          -DCMAKE_CXX_COMPILER=${{ matrix.cxx }}
+      - name: Build
+        run: cmake --build build -j
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+      - name: Verify no codec symbols
+        if: matrix.cc == 'gcc'
+        run: scripts/check_store_only_symbols.sh build
+
+  amalgamation:
+    name: Amalgamation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and run store-only suite
+        run: ./test.sh
+
+  macos:
+    name: macOS
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: >
+          cmake -S . -B build
+          -DBUILD_TESTS=ON
+          -DBUILD_EXAMPLES=OFF
+          -DCMAKE_BUILD_TYPE=Release
+      - name: Build
+        run: cmake --build build -j
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+  windows-msvc:
+    name: Windows MSVC (${{ matrix.arch }})
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x64, Win32]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: >
+          cmake -S . -B build -A ${{ matrix.arch }}
+          -DBUILD_TESTS=ON
+          -DBUILD_EXAMPLES=OFF
+      - name: Build
+        run: cmake --build build --config Release -j
+      - name: Test
+        run: ctest --test-dir build -C Release --output-on-failure
+
+  windows-mingw:
+    name: Windows MinGW (${{ matrix.msystem }})
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - msystem: MINGW64
+            prefix: mingw-w64-x86_64
+          - msystem: MINGW32
+            prefix: mingw-w64-i686
+    steps:
+      - uses: actions/checkout@v4
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: ${{ matrix.msystem }}
+          update: true
+          install: >-
+            ${{ matrix.prefix }}-gcc
+            ${{ matrix.prefix }}-cmake
+            ${{ matrix.prefix }}-ninja
+      - name: Configure
+        shell: msys2 {0}
+        run: >
+          cmake -G Ninja -S . -B build
+          -DBUILD_TESTS=ON
+          -DBUILD_EXAMPLES=OFF
+          -DCMAKE_BUILD_TYPE=Release
+      - name: Build
+        shell: msys2 {0}
+        run: cmake --build build
+      - name: Test
+        shell: msys2 {0}
+        run: ctest --test-dir build --output-on-failure

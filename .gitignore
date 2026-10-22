@@ -1,0 +1,7 @@
+/_build
+/amalgamation
+/bin
+/miniz_export.h
+/store_only_tests
+/store_only_extract
+/test_scratch

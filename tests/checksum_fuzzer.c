@@ -1,0 +1,22 @@
+/* Derived from zlib fuzzers at http://github.com/google/oss-fuzz/tree/master/projects/zlib,
+ * see ossfuzz.sh for full license text.
+ */
+
+#include <stddef.h>
+#include <stdint.h>
+#include <inttypes.h>
+
+#include "miniz.h"
+
+static const size_t kMaxSize = 1024 * 1024;
+
+int LLVMFuzzerTestOneInput(const uint8_t *data, size_t dataLen)
+{
+    /* Discard inputs larger than 1Mb. */
+    if (dataLen < 1 || dataLen > kMaxSize)
+        return 0;
+
+    mz_crc32(MZ_CRC32_INIT, data, (size_t)dataLen);
+
+    return 0;
+}
